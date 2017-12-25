@@ -55,8 +55,8 @@ server = do
           receiveWait [matchChan rp logMessage]
 
 -- Server Code
-addHandler :: StatelessChannelHandler () Message Message
-addHandler sp = statelessHandler
+messageHandler :: StatelessChannelHandler () Message Message
+messageHandler sp = statelessHandler
   where
     statelessHandler :: StatelessHandler () Message
     statelessHandler msg a@() = replyChan sp msg >> continue_ a
@@ -64,7 +64,7 @@ addHandler sp = statelessHandler
 launchChatServer :: Process ProcessId
 launchChatServer =
   let server = statelessProcess {
-        apiHandlers =  [ handleRpcChan_ addHandler ]
+        apiHandlers =  [ handleRpcChan_ messageHandler ]
         , unhandledMessagePolicy = Drop
         }
   in spawnLocal $ serve () (statelessInit Infinity) server >> return ()

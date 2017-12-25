@@ -25,7 +25,6 @@ dependencies:
 library:
   source-dirs: src
   exposed-modules:
-    - Lib
     - Server
   dependencies:
     - distributed-process == 0.6.6
