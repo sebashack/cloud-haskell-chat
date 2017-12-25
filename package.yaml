@@ -1,0 +1,61 @@
+name:                chatServer
+version:             0.1.0.0
+github:              "githubuser/chatServer"
+license:             BSD3
+author:              "Author name here"
+maintainer:          "example@example.com"
+copyright:           "2017 Author name here"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on Github at <https://github.com/githubuser/chatServer#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  exposed-modules:
+    - Lib
+    - Server
+  dependencies:
+    - distributed-process == 0.6.6
+    - distributed-process-async == 0.2.4.1
+    - network-transport-tcp == 0.5.1
+    - network-transport == 0.4.4.0
+    - distributed-process-client-server == 0.2.3
+    - distributed-process-extras == 0.3.2
+    - containers
+    - network
+    - binary
+
+executables:
+  chatServer-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+      - chatServer
+
+tests:
+  chatServer-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - chatServer
