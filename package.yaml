@@ -39,7 +39,7 @@ library:
     - binary
 
 executables:
-  chatServer-exe:
+  chatServer:
     main:                Main.hs
     source-dirs:         app
     ghc-options:

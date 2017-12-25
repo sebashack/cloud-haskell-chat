@@ -3,7 +3,7 @@ module Server where
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad (void, forever)
 import Network.Transport.TCP (createTransport, defaultTCPParameters)
-import Control.Distributed.Process (getSelfPid, send)
+import Control.Distributed.Process (getSelfPid, send, expect, Process)
 import Control.Distributed.Process.Node ( newLocalNode
                                         , initRemoteTable
                                         , runProcess )
@@ -19,7 +19,9 @@ server = do
       node <- newLocalNode ts initRemoteTable
       void $ runProcess node $ do
         self <- getSelfPid
-        send self "hello"
+        send self "Hello World"
+        hello <- expect :: Process String
+        liftIO $ putStrLn hello
 
 -- selfMessage :: RemoteTable -> Transport -> IO ()
 -- selfMessage tbl transport = do
