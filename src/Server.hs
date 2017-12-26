@@ -23,6 +23,7 @@ import Control.Distributed.Process ( getSelfPid
                                    , spawnLocal
                                    , matchChan
                                    , receiveWait
+                                   , register
                                    , Process
                                    , ProcessId(..)
                                    , SendPort
@@ -30,7 +31,8 @@ import Control.Distributed.Process ( getSelfPid
 import Control.Distributed.Process.ManagedProcess.Server (replyChan, continue_)
 import Control.Distributed.Process.Extras.Time (Delay(..))
 import Control.Distributed.Process.Node ( initRemoteTable
-                                        , runProcess )
+                                        , runProcess
+                                        , LocalNode )
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
 
@@ -40,14 +42,21 @@ type Message = String
 logMessage :: Message -> Process ()
 logMessage = say
 
+backend :: IO (Backend, LocalNode)
+backend = do
+  let host = "127.0.0.1"
+      port = "8882"
+  bk <- initializeBackend host port initRemoteTable
+  node <- newLocalNode bk
+  return (bk, node)
+
 server :: IO ()
 server = do
-  let host = "127.0.0.1"
-      port = "4242"
-  backend <- initializeBackend host port initRemoteTable
-  node <- newLocalNode backend
-  void $ runProcess node $ forever launchChatServer
-
+  (_, node) <- backend
+  runProcess node $  do
+    pId <- launchChatServer
+    register "chat-1" pId
+    liftIO $ threadDelay 20000000000
 
 -- Server Code
 messageHandler :: StatelessChannelHandler () Message Message
