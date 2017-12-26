@@ -9,6 +9,7 @@ import Control.Distributed.Process.ManagedProcess ( serve
                                                   , statelessProcess
                                                   , handleCall_
                                                   , handleRpcChan_
+                                                  , InitResult(..)
                                                   , UnhandledMessagePolicy(..)
                                                   , StatelessChannelHandler
                                                   , StatelessHandler
@@ -45,10 +46,8 @@ server = do
       port = "4242"
   backend <- initializeBackend host port initRemoteTable
   node <- newLocalNode backend
-  void $ runProcess node $ do
-    say "Starting new connection ... "
-    pId <- launchChatServer
-    liftIO $ threadDelay 2000000
+  void $ runProcess node $ forever launchChatServer
+
 
 -- Server Code
 messageHandler :: StatelessChannelHandler () Message Message
