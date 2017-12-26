@@ -2,6 +2,7 @@ module Main where
 
 import Server
 
-
 main :: IO ()
-main = server
+main = do
+  putStrLn "Starting chat server ... "
+  server

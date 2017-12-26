@@ -29,10 +29,10 @@ library:
   dependencies:
     - distributed-process == 0.6.6
     - distributed-process-async == 0.2.4.1
-    - network-transport-tcp == 0.5.1
     - network-transport == 0.4.4.0
     - distributed-process-client-server == 0.2.3
     - distributed-process-extras == 0.3.2
+    - distributed-process-simplelocalnet == 0.2.3.3
     - containers
     - network
     - binary
@@ -47,8 +47,6 @@ executables:
     - -with-rtsopts=-N
     dependencies:
       - chatServer
-
-executables:
   chatClient:
     main:                Main.hs
     source-dirs:         client

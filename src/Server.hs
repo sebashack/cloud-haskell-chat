@@ -3,7 +3,7 @@ module Server where
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad (void, forever)
 import Control.Monad.Fix (fix)
-import Network.Transport.TCP (createTransport, defaultTCPParameters)
+import Control.Distributed.Process.Backend.SimpleLocalnet (initializeBackend, Backend(..))
 import Control.Distributed.Process.ManagedProcess ( serve
                                                   , statelessInit
                                                   , statelessProcess
@@ -23,14 +23,15 @@ import Control.Distributed.Process ( getSelfPid
                                    , matchChan
                                    , receiveWait
                                    , Process
-                                   , ProcessId
+                                   , ProcessId(..)
                                    , SendPort
                                    , ReceivePort )
 import Control.Distributed.Process.ManagedProcess.Server (replyChan, continue_)
 import Control.Distributed.Process.Extras.Time (Delay(..))
-import Control.Distributed.Process.Node ( newLocalNode
-                                        , initRemoteTable
+import Control.Distributed.Process.Node ( initRemoteTable
                                         , runProcess )
+import Control.Concurrent (threadDelay)
+import Control.Monad.IO.Class (liftIO)
 
 
 type Message = String
@@ -42,17 +43,12 @@ server :: IO ()
 server = do
   let host = "127.0.0.1"
       port = "4242"
-  eTrans <- createTransport host port defaultTCPParameters
-  case eTrans of
-    Left err -> putStrLn "" >> print err
-    Right ts -> do
-      node <- newLocalNode ts initRemoteTable
-      void $ runProcess node $ do
-        say "Start new connection... "
-        (sp, rp) <- newChan :: Process (SendPort String, ReceivePort String)
-
-        void $ spawnLocal $ forever $
-          receiveWait [matchChan rp logMessage]
+  backend <- initializeBackend host port initRemoteTable
+  node <- newLocalNode backend
+  void $ runProcess node $ do
+    say "Starting new connection ... "
+    pId <- launchChatServer
+    liftIO $ threadDelay 2000000
 
 -- Server Code
 messageHandler :: StatelessChannelHandler () Message Message
@@ -64,7 +60,7 @@ messageHandler sp = statelessHandler
 launchChatServer :: Process ProcessId
 launchChatServer =
   let server = statelessProcess {
-        apiHandlers =  [ handleRpcChan_ messageHandler ]
+          apiHandlers =  [ handleRpcChan_ messageHandler ]
         , unhandledMessagePolicy = Drop
         }
-  in spawnLocal $ serve () (statelessInit Infinity) server >> return ()
+  in spawnLocal $ serve () (statelessInit Infinity) server
