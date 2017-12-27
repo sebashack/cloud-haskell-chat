@@ -1,7 +1,7 @@
 module Main where
 
 import Client
-import Server (backend)
+import Server
 
 main :: IO ()
-main = backend >>= launchChatClient
+main = launchChatClient

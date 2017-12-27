@@ -1,10 +1,17 @@
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric      #-}
+
+
 module Client where
 
-import Control.Distributed.Process.ManagedProcess.Client (callChan)
-import Control.Distributed.Process (whereisRemoteAsync)
-import Control.Distributed.Process.Backend.SimpleLocalnet (initializeBackend, Backend(..))
+import Control.Distributed.Process.ManagedProcess.Client (call, callChan)
+import Control.Distributed.Process (whereisRemoteAsync, NodeId(..))
+import Control.Distributed.Process.Backend.SimpleLocalnet (initializeBackend, Backend)
+import qualified Control.Distributed.Process.Backend.SimpleLocalnet as B (Backend(..))
 import Control.Distributed.Process ( expect
+                                   , expectTimeout
                                    , say
+                                   , send
                                    , receiveWait
                                    , spawnLocal
                                    , matchChan
@@ -14,43 +21,44 @@ import Control.Distributed.Process ( expect
                                    , WhereIsReply(..) )
 import Control.Distributed.Process.Node ( initRemoteTable
                                         , runProcess
+                                        , newLocalNode
                                         , LocalNode)
+import Network.Transport.TCP (createTransport, defaultTCPParameters)
+import Network.Transport     (EndPointAddress(..))
+import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad (void, forever)
+import Server (Message(..))
+import qualified Data.ByteString.Char8 as BS (pack)
 
 -- Client code
 sendMsg :: ProcessId -> String -> Process (ReceivePort String)
 sendMsg sid msg = callChan sid msg
 
-searchChatServer :: Backend -> Process (Maybe ProcessId)
-searchChatServer backend = do
-  peers <- liftIO $ findPeers backend $ 1000000
-  search peers
-  where
-    search [] = return Nothing
-    search (peer : ps) = do
-      whereisRemoteAsync peer "chat-1"
-      WhereIsReply _ remoteWhereIs <- expect
-      case remoteWhereIs of
-        Just chatServerPid -> return (Just chatServerPid)
-        Nothing -> search ps
+searchChatServer :: String -> Process ProcessId
+searchChatServer serverAddr = do
+  let addr = EndPointAddress (BS.pack serverAddr)
+      srvId = NodeId addr
+  whereisRemoteAsync srvId "chat-1"
+  reply <- expectTimeout 1000
+  case reply of
+    Just (WhereIsReply _ msid) -> case msid of
+      Just sid -> return sid
+      Nothing  -> searchChatServer serverAddr
+    Nothing -> searchChatServer serverAddr
 
 logMsgBack :: String -> Process ()
 logMsgBack result =
   say $ "result: " ++ show result
 
-launchChatClient :: (Backend, LocalNode) -> IO ()
-launchChatClient (serverBk, _) = do
-  let host = "127.0.0.1"
-      port = "7882"
-  clientBk <- initializeBackend host port initRemoteTable
-  node <- newLocalNode clientBk
+launchChatClient :: IO ()
+launchChatClient = do
+  let host = "127.0.0.2"
+      port = "8080"
+  Right transport <- createTransport "127.0.0.2" "8080" defaultTCPParameters
+  node <- newLocalNode transport initRemoteTable
   runProcess node $ do
-    mPid <- searchChatServer serverBk
-    case mPid of
-      Just pId -> do
-        say "Server found !!"
-        rp <- sendMsg pId "Hello server"
-        void $ spawnLocal $ forever $
-          receiveWait [matchChan rp logMsgBack]
-      Nothing -> say "No chat server found !!"
+    pId <- searchChatServer "127.0.0.2"
+    say "Server found !!"
+    res <- call pId (Message "Hello server") :: Process Message
+    return ()

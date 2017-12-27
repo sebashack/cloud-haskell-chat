@@ -36,6 +36,8 @@ library:
     - distributed-process-simplelocalnet == 0.2.3.3
     - containers
     - network
+    - bytestring
+    - network-transport-tcp
     - binary
 
 executables:

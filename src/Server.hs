@@ -1,9 +1,18 @@
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric      #-}
+
+
 module Server where
 
+
+import GHC.Generics
+import Data.Binary
+import Data.Typeable.Internal
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad (void, forever)
 import Control.Monad.Fix (fix)
-import Control.Distributed.Process.Backend.SimpleLocalnet (initializeBackend, Backend(..))
+import Network.Transport.TCP (createTransport, defaultTCPParameters)
+-- import Control.Distributed.Process.Backend.SimpleLocalnet (initializeBackend, Backend(..))
 import Control.Distributed.Process.ManagedProcess ( serve
                                                   , statelessInit
                                                   , statelessProcess
@@ -24,6 +33,7 @@ import Control.Distributed.Process ( getSelfPid
                                    , matchChan
                                    , receiveWait
                                    , register
+                                   , expect
                                    , Process
                                    , ProcessId(..)
                                    , SendPort
@@ -32,31 +42,37 @@ import Control.Distributed.Process.ManagedProcess.Server (replyChan, continue_)
 import Control.Distributed.Process.Extras.Time (Delay(..))
 import Control.Distributed.Process.Node ( initRemoteTable
                                         , runProcess
+                                        , forkProcess
+                                        , newLocalNode
                                         , LocalNode )
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
 
 
-type Message = String
+newtype Message = Message { unMessage :: String }
+  deriving (Generic, Typeable, Show)
+
+instance Binary Message
 
 logMessage :: Message -> Process ()
-logMessage = say
+logMessage = say . unMessage
 
-backend :: IO (Backend, LocalNode)
-backend = do
-  let host = "127.0.0.1"
-      port = "8882"
-  bk <- initializeBackend host port initRemoteTable
-  node <- newLocalNode bk
-  return (bk, node)
+-- backend :: IO Backend
+-- backend = do
+--   let host = "127.0.0.1"
+--       port = "3000"
+--   initializeBackend host port initRemoteTable
 
 server :: IO ()
 server = do
-  (_, node) <- backend
-  runProcess node $  do
+  let host = "127.0.0.1"
+      port = "3000"
+  Right transport <- createTransport "127.0.0.1" "8080" defaultTCPParameters
+  node <- newLocalNode transport initRemoteTable
+  forever $ runProcess node $ do
+    msg <- expect :: Process Message
     pId <- launchChatServer
-    register "chat-1" pId
-    liftIO $ threadDelay 20000000000
+    say $ unMessage msg
 
 -- Server Code
 messageHandler :: StatelessChannelHandler () Message Message
