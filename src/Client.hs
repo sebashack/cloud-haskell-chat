@@ -4,7 +4,7 @@
 
 module Client where
 
-import Control.Distributed.Process.ManagedProcess.Client (call, callChan)
+import Control.Distributed.Process.ManagedProcess.Client (callTimeout, callChan)
 import Control.Distributed.Process (whereisRemoteAsync, NodeId(..))
 import Control.Distributed.Process.Backend.SimpleLocalnet (initializeBackend, Backend)
 import qualified Control.Distributed.Process.Backend.SimpleLocalnet as B (Backend(..))
@@ -29,6 +29,7 @@ import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad (void, forever)
 import Server (Message(..))
+import Control.Distributed.Process.Extras.Time (milliSeconds)
 import qualified Data.ByteString.Char8 as BS (pack)
 
 -- Client code
@@ -37,6 +38,7 @@ sendMsg sid msg = callChan sid msg
 
 searchChatServer :: String -> Process ProcessId
 searchChatServer serverAddr = do
+  say "searching ..."
   let addr = EndPointAddress (BS.pack serverAddr)
       srvId = NodeId addr
   whereisRemoteAsync srvId "chat-1"
@@ -58,7 +60,7 @@ launchChatClient = do
   Right transport <- createTransport "127.0.0.2" "8080" defaultTCPParameters
   node <- newLocalNode transport initRemoteTable
   runProcess node $ do
-    pId <- searchChatServer "127.0.0.2"
+    pId <- searchChatServer "127.0.0.1"
     say "Server found !!"
-    res <- call pId (Message "Hello server") :: Process Message
+    res <- callTimeout pId (Message "Hello server") (milliSeconds 1000) :: Process (Maybe Message)
     return ()

@@ -70,8 +70,9 @@ server = do
   Right transport <- createTransport "127.0.0.1" "8080" defaultTCPParameters
   node <- newLocalNode transport initRemoteTable
   forever $ runProcess node $ do
-    msg <- expect :: Process Message
     pId <- launchChatServer
+    register "chat-1" pId
+    msg <- expect :: Process Message
     say $ unMessage msg
 
 -- Server Code
