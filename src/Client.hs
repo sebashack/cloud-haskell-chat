@@ -16,6 +16,7 @@ import Control.Distributed.Process ( expect
                                    , spawnLocal
                                    , matchChan
                                    , receiveChan
+                                   , nsend
                                    , Process
                                    , ProcessId
                                    , ReceivePort
@@ -31,6 +32,7 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad (void, forever)
 import Server (Message(..))
 import Control.Distributed.Process.Extras.Time (milliSeconds)
+import System.Environment    (getArgs)
 import qualified Data.ByteString.Char8 as BS (pack)
 
 -- Client code
@@ -39,7 +41,6 @@ sendMsg sid msg = callChan sid msg
 
 searchChatServer :: String -> Process ProcessId
 searchChatServer serverAddr = do
-  say "searching ..."
   let addr = EndPointAddress (BS.pack serverAddr)
       srvId = NodeId addr
   whereisRemoteAsync srvId "chat-1"
@@ -56,12 +57,19 @@ logMsgBack result =
 
 launchChatClient :: IO ()
 launchChatClient = do
-  Right transport <- createTransport "127.0.0.2" "8088" defaultTCPParameters
-  node <- newLocalNode transport initRemoteTable
-  runProcess node $ do
-    pId <- searchChatServer "127.0.0.1:8088:0"
-    say $ "Server found: " ++ show pId
-    rp <- callChan pId (Message "Hello server") :: Process (ReceivePort Message)
-    (Message msg) <- receiveChan rp
-    say $ "Message sent back: " ++ msg
-    liftIO $ (threadDelay $ 2000000)
+  [serverAddr] <- getArgs
+  mt <- createTransport serverAddr "8088" defaultTCPParameters
+  case mt of
+    Left err -> putStrLn (show err)
+    Right transport -> do
+      node <- newLocalNode transport initRemoteTable
+      forever  $ runProcess node $ do
+        pId <- searchChatServer "127.0.0.1:8088:0"
+        say "Type your message: "
+        input <- liftIO getLine
+        rp <- callChan pId (Message input) :: Process (ReceivePort Message)
+        (Message msg) <- receiveChan rp
+        say $ "Message sent back: " ++ msg
+        liftIO $ threadDelay 500000
+
+-- 127.0.0.x
