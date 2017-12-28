@@ -58,7 +58,7 @@ launchChatClient = do
   Right transport <- createTransport "127.0.0.2" "8088" defaultTCPParameters
   node <- newLocalNode transport initRemoteTable
   runProcess node $ do
-    pId <- searchChatServer "127.0.0.1"
+    pId <- searchChatServer "127.0.0.1:8088:0"
     say "Server found !!"
     res <- callTimeout pId (Message "Hello server") (milliSeconds 1000) :: Process (Maybe Message)
     return ()

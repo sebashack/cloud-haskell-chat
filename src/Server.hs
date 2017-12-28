@@ -65,11 +65,12 @@ logMessage = say . unMessage
 
 server :: IO ()
 server = do
-  Right transport <- createTransport "127.0.0.1" "3000" defaultTCPParameters
+  Right transport <- createTransport "127.0.0.1" "8088" defaultTCPParameters
   node <- newLocalNode transport initRemoteTable
   forever $ runProcess node $ do
+    self <- getSelfPid
     pId <- launchChatServer
-    register "chat-1" pId
+    register "chat-1" self
     msg <- expect :: Process Message
     say $ unMessage msg
 
@@ -86,4 +87,4 @@ launchChatServer =
           apiHandlers =  [ handleRpcChan_ messageHandler ]
         , unhandledMessagePolicy = Drop
         }
-  in spawnLocal $ serve () (statelessInit Infinity) server
+  in say "Process listening" >> spawnLocal (serve () (statelessInit Infinity) server)
