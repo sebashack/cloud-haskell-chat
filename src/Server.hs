@@ -53,7 +53,7 @@ server :: IO ()
 server = do
   Right transport <- createTransport "127.0.0.1" "8088" defaultTCPParameters
   node <- newLocalNode transport initRemoteTable
-  forever $ runProcess node $ do
+  runProcess node $ do
     pId <- launchChatServer
     say $ "Process launched: " ++ show pId
     register "chat-1" pId
@@ -85,4 +85,4 @@ launchChatServer =
                          ]
         , unhandledMessagePolicy = Drop
         }
-  in spawnLocal (serve () (const (return $ InitOk [] Infinity)) server)
+  in spawnLocal $ serve () (const (return $ InitOk [] Infinity)) server
