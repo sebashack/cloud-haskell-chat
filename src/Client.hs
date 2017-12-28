@@ -17,6 +17,7 @@ import Control.Distributed.Process ( expect
                                    , matchChan
                                    , receiveChan
                                    , nsend
+                                   , getSelfPid
                                    , Process
                                    , ProcessId
                                    , ReceivePort
@@ -65,10 +66,12 @@ launchChatClient = do
     Right transport -> do
       node <- newLocalNode transport initRemoteTable
       runProcess node $ do
-        pId <- searchChatServer "127.0.0.1:8088:0"
-        say "Type your message: "
-        input <- liftIO getLine
-        rp <- callChan pId (Message input) :: Process (ReceivePort Message)
+        serverPid <- searchChatServer "127.0.0.1:8088:0"
+        clientPid <- getSelfPid
+        say "Joining chat server ... "
+        say "Please, provide your nickname ... "
+        nickName <- liftIO getLine
+        rp <- callChan serverPid (JoinChatMessage nickName clientPid) :: Process (ReceivePort Message)
         (Message msg) <- receiveChan rp
         say $ "Message sent back: " ++ msg
         liftIO $ threadDelay 500000
