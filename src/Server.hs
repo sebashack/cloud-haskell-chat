@@ -11,8 +11,10 @@ import Network.Transport.TCP (createTransport, defaultTCPParameters)
 import Control.Distributed.Process.ManagedProcess ( serve
                                                   , statelessInit
                                                   , statelessProcess
+                                                  , defaultProcess
                                                   , handleCall_
                                                   , handleRpcChan_
+                                                  , handleRpcChan
                                                   , InitResult(..)
                                                   , UnhandledMessagePolicy(..)
                                                   , ChannelHandler
@@ -61,8 +63,8 @@ broadcastMessage :: [SendPort Message] -> Message -> Process ()
 broadcastMessage clientPorts msg = forM_ clientPorts $ flip replyChan msg
 
 -- Server Code
-joinChatHandler_ :: StatelessChannelHandler () Message Message
-joinChatHandler_ sp = statelessHandler
+messageHandler :: StatelessChannelHandler () Message Message
+messageHandler sp = statelessHandler
   where
     statelessHandler :: StatelessHandler () Message
     statelessHandler msg a@() = replyChan sp msg >> continue_ a
@@ -78,9 +80,9 @@ joinChatHandler sp = handler
 
 launchChatServer :: Process ProcessId
 launchChatServer =
-  let server = statelessProcess {
-          apiHandlers =  [ handleRpcChan_ joinChatHandler_
+  let server = defaultProcess {
+          apiHandlers =  [ handleRpcChan joinChatHandler
                          ]
         , unhandledMessagePolicy = Drop
         }
-  in spawnLocal (serve () (statelessInit Infinity) server)
+  in spawnLocal (serve () (const (return $ InitOk [] Infinity)) server)
