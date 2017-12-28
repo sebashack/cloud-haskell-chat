@@ -65,9 +65,7 @@ logMessage = say . unMessage
 
 server :: IO ()
 server = do
-  let host = "127.0.0.1"
-      port = "3000"
-  Right transport <- createTransport "127.0.0.1" "8080" defaultTCPParameters
+  Right transport <- createTransport "127.0.0.1" "3000" defaultTCPParameters
   node <- newLocalNode transport initRemoteTable
   forever $ runProcess node $ do
     pId <- launchChatServer

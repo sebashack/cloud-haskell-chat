@@ -55,9 +55,7 @@ logMsgBack result =
 
 launchChatClient :: IO ()
 launchChatClient = do
-  let host = "127.0.0.2"
-      port = "8080"
-  Right transport <- createTransport "127.0.0.2" "8080" defaultTCPParameters
+  Right transport <- createTransport "127.0.0.2" "8088" defaultTCPParameters
   node <- newLocalNode transport initRemoteTable
   runProcess node $ do
     pId <- searchChatServer "127.0.0.1"
