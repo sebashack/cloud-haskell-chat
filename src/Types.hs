@@ -17,9 +17,8 @@ logMessage :: Message -> Process ()
 logMessage = say . unMessage
 
 
-data JoinChatMessage = JoinChatMessage {
+newtype JoinChatMessage = JoinChatMessage {
     clientName :: String
-  , clientPid :: ProcessId
   } deriving (Generic, Typeable, Show)
 
 instance Binary JoinChatMessage

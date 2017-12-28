@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric      #-}
-
+{-# LANGUAGE RecordWildCards    #-}
 
 module Server where
 
@@ -15,6 +15,8 @@ import Control.Distributed.Process.ManagedProcess ( serve
                                                   , handleRpcChan_
                                                   , InitResult(..)
                                                   , UnhandledMessagePolicy(..)
+                                                  , ChannelHandler
+                                                  , ActionHandler
                                                   , StatelessChannelHandler
                                                   , StatelessHandler
                                                   , Action
@@ -33,7 +35,7 @@ import Control.Distributed.Process ( getSelfPid
                                    , ProcessId(..)
                                    , SendPort
                                    , ReceivePort )
-import Control.Distributed.Process.ManagedProcess.Server (replyChan, handleCall_, continue_)
+import Control.Distributed.Process.ManagedProcess.Server (replyChan, handleCall_, continue_, continue)
 import Control.Distributed.Process.Extras.Time (Delay(..))
 import Control.Distributed.Process.Node ( initRemoteTable
                                         , runProcess
@@ -42,6 +44,7 @@ import Control.Distributed.Process.Node ( initRemoteTable
                                         , LocalNode )
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad (forM_)
 import Types
 
 server :: IO ()
@@ -54,18 +57,30 @@ server = do
     register "chat-1" pId
     liftIO (threadDelay $ 1000 * 1000000)
 
+broadcastMessage :: [SendPort Message] -> Message -> Process ()
+broadcastMessage clientPorts msg = forM_ clientPorts $ flip replyChan msg
+
 -- Server Code
-messageHandler :: StatelessChannelHandler () Message Message
-messageHandler sp = statelessHandler
+joinChatHandler_ :: StatelessChannelHandler () Message Message
+joinChatHandler_ sp = statelessHandler
   where
     statelessHandler :: StatelessHandler () Message
     statelessHandler msg a@() = replyChan sp msg >> continue_ a
 
+joinChatHandler :: ChannelHandler [SendPort Message] JoinChatMessage Message
+joinChatHandler sp = handler
+  where
+    handler :: ActionHandler [SendPort Message] JoinChatMessage
+    handler clients JoinChatMessage{..} = do
+      let clients' = sp : clients
+      broadcastMessage clients' (Message $ clientName ++ " has joined the chat ...")
+      continue clients'
+
 launchChatServer :: Process ProcessId
 launchChatServer =
   let server = statelessProcess {
-          apiHandlers =  [ handleRpcChan_ messageHandler
-                         , handleCall_ (\(Message msg) -> say msg) ]
+          apiHandlers =  [ handleRpcChan_ joinChatHandler_
+                         ]
         , unhandledMessagePolicy = Drop
         }
   in spawnLocal (serve () (statelessInit Infinity) server)
