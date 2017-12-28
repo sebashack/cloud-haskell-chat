@@ -30,10 +30,11 @@ import Network.Transport     (EndPointAddress(..))
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad (void, forever)
-import Server (Message(..))
 import Control.Distributed.Process.Extras.Time (milliSeconds)
 import System.Environment    (getArgs)
 import qualified Data.ByteString.Char8 as BS (pack)
+import Types
+
 
 -- Client code
 sendMsg :: ProcessId -> String -> Process (ReceivePort String)
@@ -63,7 +64,7 @@ launchChatClient = do
     Left err -> putStrLn (show err)
     Right transport -> do
       node <- newLocalNode transport initRemoteTable
-      forever  $ runProcess node $ do
+      runProcess node $ do
         pId <- searchChatServer "127.0.0.1:8088:0"
         say "Type your message: "
         input <- liftIO getLine

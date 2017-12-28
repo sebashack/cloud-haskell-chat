@@ -4,15 +4,10 @@
 
 module Server where
 
-
-import GHC.Generics
-import Data.Binary
-import Data.Typeable.Internal
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad (void, forever)
 import Control.Monad.Fix (fix)
 import Network.Transport.TCP (createTransport, defaultTCPParameters)
--- import Control.Distributed.Process.Backend.SimpleLocalnet (initializeBackend, Backend(..))
 import Control.Distributed.Process.ManagedProcess ( serve
                                                   , statelessInit
                                                   , statelessProcess
@@ -47,21 +42,7 @@ import Control.Distributed.Process.Node ( initRemoteTable
                                         , LocalNode )
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
-
-
-newtype Message = Message { unMessage :: String }
-  deriving (Generic, Typeable, Show)
-
-instance Binary Message
-
-logMessage :: Message -> Process ()
-logMessage = say . unMessage
-
--- backend :: IO Backend
--- backend = do
---   let host = "127.0.0.1"
---       port = "3000"
---   initializeBackend host port initRemoteTable
+import Types
 
 server :: IO ()
 server = do
@@ -71,9 +52,7 @@ server = do
     pId <- launchChatServer
     say $ "Process launched: " ++ show pId
     register "chat-1" pId
-    liftIO $ (threadDelay $ 1000 * 1000000)
-    --msg <- expect :: Process Message
-    --say $ unMessage msg
+    liftIO (threadDelay $ 1000 * 1000000)
 
 -- Server Code
 messageHandler :: StatelessChannelHandler () Message Message
