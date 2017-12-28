@@ -38,7 +38,7 @@ import Control.Distributed.Process ( getSelfPid
                                    , ProcessId(..)
                                    , SendPort
                                    , ReceivePort )
-import Control.Distributed.Process.ManagedProcess.Server (replyChan, continue_)
+import Control.Distributed.Process.ManagedProcess.Server (replyChan, handleCall_, continue_)
 import Control.Distributed.Process.Extras.Time (Delay(..))
 import Control.Distributed.Process.Node ( initRemoteTable
                                         , runProcess
@@ -68,11 +68,12 @@ server = do
   Right transport <- createTransport "127.0.0.1" "8088" defaultTCPParameters
   node <- newLocalNode transport initRemoteTable
   forever $ runProcess node $ do
-    self <- getSelfPid
     pId <- launchChatServer
-    register "chat-1" self
-    msg <- expect :: Process Message
-    say $ unMessage msg
+    say $ "Process launched: " ++ show pId
+    register "chat-1" pId
+    liftIO $ (threadDelay $ 1000 * 1000000)
+    --msg <- expect :: Process Message
+    --say $ unMessage msg
 
 -- Server Code
 messageHandler :: StatelessChannelHandler () Message Message
@@ -84,7 +85,8 @@ messageHandler sp = statelessHandler
 launchChatServer :: Process ProcessId
 launchChatServer =
   let server = statelessProcess {
-          apiHandlers =  [ handleRpcChan_ messageHandler ]
+          apiHandlers =  [ handleRpcChan_ messageHandler
+                         , handleCall_ (\(Message msg) -> say msg) ]
         , unhandledMessagePolicy = Drop
         }
-  in say "Process listening" >> spawnLocal (serve () (statelessInit Infinity) server)
+  in spawnLocal (serve () (statelessInit Infinity) server)

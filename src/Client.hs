@@ -15,6 +15,7 @@ import Control.Distributed.Process ( expect
                                    , receiveWait
                                    , spawnLocal
                                    , matchChan
+                                   , receiveChan
                                    , Process
                                    , ProcessId
                                    , ReceivePort
@@ -59,6 +60,8 @@ launchChatClient = do
   node <- newLocalNode transport initRemoteTable
   runProcess node $ do
     pId <- searchChatServer "127.0.0.1:8088:0"
-    say "Server found !!"
-    res <- callTimeout pId (Message "Hello server") (milliSeconds 1000) :: Process (Maybe Message)
-    return ()
+    say $ "Server found: " ++ show pId
+    rp <- callChan pId (Message "Hello server") :: Process (ReceivePort Message)
+    (Message msg) <- receiveChan rp
+    say $ "Message sent back: " ++ msg
+    liftIO $ (threadDelay $ 2000000)
