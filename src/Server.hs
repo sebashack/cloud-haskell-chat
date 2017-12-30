@@ -53,13 +53,16 @@ import Types
 
 server :: IO ()
 server = do
-  Right transport <- createTransport "127.0.0.1" "8088" defaultTCPParameters
-  node <- newLocalNode transport initRemoteTable
-  runProcess node $ do
-    pId <- launchChatServer
-    say $ "Process launched: " ++ show pId
-    register "chat-1" pId
-    liftIO (threadDelay $ 1000 * 1000000)
+  mt <- createTransport "127.0.0.1" "8088" defaultTCPParameters
+  case mt of
+    Right transport -> do
+      node <- newLocalNode transport initRemoteTable
+      runProcess node $ do
+        pId <- launchChatServer
+        say $ "Process launched: " ++ show pId
+        register "chat-1" pId
+        liftIO $ forever $ threadDelay 500000
+    Left err -> putStrLn (show err)
 
 broadcastMessage :: [SendPort ChatMessage] -> ChatMessage -> Process ()
 broadcastMessage clientPorts msg = forM_ clientPorts $ flip replyChan msg
@@ -85,7 +88,7 @@ joinChatHandler sp = handler
     handler :: ActionHandler [SendPort ChatMessage] JoinChatMessage
     handler clients JoinChatMessage{..} = do
       let clients' = sp : clients
-      broadcastMessage clients' $ ChatMessage Server (clientName ++ " has joined the chat ...")
+      broadcastMessage clients $ ChatMessage Server (clientName ++ " has joined the chat ...")
       continue clients'
 
 launchChatServer :: Process ProcessId
