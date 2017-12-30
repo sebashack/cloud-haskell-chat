@@ -6,15 +6,21 @@ module Types where
 import GHC.Generics
 import Data.Binary
 import Data.Typeable.Internal
-import Control.Distributed.Process (say, Process, ProcessId)
+import Control.Distributed.Process (Process, ProcessId)
 
-newtype Message = Message { unMessage :: String }
-  deriving (Generic, Typeable, Show)
 
-instance Binary Message
+data Sender = Server | Client String
+  deriving (Generic, Typeable, Eq, Show)
 
-logMessage :: Message -> Process ()
-logMessage = say . unMessage
+instance Binary Sender
+
+
+data ChatMessage = ChatMessage {
+    from :: Sender
+  , message :: String
+  } deriving (Generic, Typeable, Show)
+
+instance Binary ChatMessage
 
 
 newtype JoinChatMessage = JoinChatMessage {

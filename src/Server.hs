@@ -61,31 +61,31 @@ server = do
     register "chat-1" pId
     liftIO (threadDelay $ 1000 * 1000000)
 
-broadcastMessage :: [SendPort Message] -> Message -> Process ()
+broadcastMessage :: [SendPort ChatMessage] -> ChatMessage -> Process ()
 broadcastMessage clientPorts msg = forM_ clientPorts $ flip replyChan msg
 
 -- Server Code
-messageHandler_ :: StatelessChannelHandler () Message Message
+messageHandler_ :: StatelessChannelHandler () ChatMessage ChatMessage
 messageHandler_ sp = statelessHandler
   where
-    statelessHandler :: StatelessHandler () Message
+    statelessHandler :: StatelessHandler () ChatMessage
     statelessHandler msg a@() = replyChan sp msg >> continue_ a
 
-messageHandler :: CastHandler [SendPort Message] Message
+messageHandler :: CastHandler [SendPort ChatMessage] ChatMessage
 messageHandler = handler
   where
-    handler :: ActionHandler [SendPort Message] Message
+    handler :: ActionHandler [SendPort ChatMessage] ChatMessage
     handler clients msg = do
       broadcastMessage clients msg
       continue clients
 
-joinChatHandler :: ChannelHandler [SendPort Message] JoinChatMessage Message
+joinChatHandler :: ChannelHandler [SendPort ChatMessage] JoinChatMessage ChatMessage
 joinChatHandler sp = handler
   where
-    handler :: ActionHandler [SendPort Message] JoinChatMessage
+    handler :: ActionHandler [SendPort ChatMessage] JoinChatMessage
     handler clients JoinChatMessage{..} = do
       let clients' = sp : clients
-      broadcastMessage clients' (Message $ clientName ++ " has joined the chat ...")
+      broadcastMessage clients' $ ChatMessage Server (clientName ++ " has joined the chat ...")
       continue clients'
 
 launchChatServer :: Process ProcessId

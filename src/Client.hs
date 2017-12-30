@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric      #-}
-
+{-# LANGUAGE RecordWildCards    #-}
 
 module Client where
 
@@ -53,9 +53,11 @@ searchChatServer serverAddr = do
       Nothing  -> searchChatServer serverAddr
     Nothing -> searchChatServer serverAddr
 
-logMsgBack :: String -> Process ()
-logMsgBack result =
-  say $ "result: " ++ show result
+logChatMessage :: ChatMessage -> Process ()
+logChatMessage ChatMessage{..} =
+  case from of
+    Server ->  say message
+    Client sender-> say $ sender ++ ": " ++ message
 
 launchChatClient :: IO ()
 launchChatClient = do
@@ -70,14 +72,14 @@ launchChatClient = do
         say "Joining chat server ... "
         say "Please, provide your nickname ... "
         nickName <- liftIO getLine
-        rp <- callChan serverPid (JoinChatMessage nickName) :: Process (ReceivePort Message)
+        rp <- callChan serverPid (JoinChatMessage nickName) :: Process (ReceivePort ChatMessage)
         say "You have joined the chat ... "
         void $ spawnLocal $ forever $ do
-          (Message msg) <- receiveChan rp
-          say msg
+          msg <- receiveChan rp
+          logChatMessage msg
         forever $ do
           chatInput <- liftIO getLine
-          cast serverPid (Message chatInput)
+          cast serverPid (ChatMessage (Client nickName) chatInput)
           liftIO $ threadDelay 500000
 
 -- 127.0.0.x
