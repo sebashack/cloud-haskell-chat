@@ -15,10 +15,12 @@ import Control.Distributed.Process.ManagedProcess ( serve
                                                   , handleCall_
                                                   , handleRpcChan_
                                                   , handleRpcChan
+                                                  , handleCast
                                                   , InitResult(..)
                                                   , UnhandledMessagePolicy(..)
                                                   , ChannelHandler
                                                   , ActionHandler
+                                                  , CastHandler
                                                   , StatelessChannelHandler
                                                   , StatelessHandler
                                                   , Action
@@ -63,11 +65,19 @@ broadcastMessage :: [SendPort Message] -> Message -> Process ()
 broadcastMessage clientPorts msg = forM_ clientPorts $ flip replyChan msg
 
 -- Server Code
-messageHandler :: StatelessChannelHandler () Message Message
-messageHandler sp = statelessHandler
+messageHandler_ :: StatelessChannelHandler () Message Message
+messageHandler_ sp = statelessHandler
   where
     statelessHandler :: StatelessHandler () Message
     statelessHandler msg a@() = replyChan sp msg >> continue_ a
+
+messageHandler :: CastHandler [SendPort Message] Message
+messageHandler = handler
+  where
+    handler :: ActionHandler [SendPort Message] Message
+    handler clients msg = do
+      broadcastMessage clients msg
+      continue clients
 
 joinChatHandler :: ChannelHandler [SendPort Message] JoinChatMessage Message
 joinChatHandler sp = handler
@@ -82,6 +92,7 @@ launchChatServer :: Process ProcessId
 launchChatServer =
   let server = defaultProcess {
           apiHandlers =  [ handleRpcChan joinChatHandler
+                         , handleCast messageHandler
                          ]
         , unhandledMessagePolicy = Drop
         }

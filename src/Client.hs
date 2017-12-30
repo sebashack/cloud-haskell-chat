@@ -4,7 +4,7 @@
 
 module Client where
 
-import Control.Distributed.Process.ManagedProcess.Client (callTimeout, callChan)
+import Control.Distributed.Process.ManagedProcess.Client (callTimeout, callChan, cast)
 import Control.Distributed.Process (whereisRemoteAsync, NodeId(..))
 import Control.Distributed.Process.Backend.SimpleLocalnet (initializeBackend, Backend)
 import qualified Control.Distributed.Process.Backend.SimpleLocalnet as B (Backend(..))
@@ -72,9 +72,12 @@ launchChatClient = do
         nickName <- liftIO getLine
         rp <- callChan serverPid (JoinChatMessage nickName) :: Process (ReceivePort Message)
         say "You have joined the chat ... "
-        forever $ do
+        void $ spawnLocal $ forever $ do
           (Message msg) <- receiveChan rp
           say msg
+        forever $ do
+          chatInput <- liftIO getLine
+          cast serverPid (Message chatInput)
           liftIO $ threadDelay 500000
 
 -- 127.0.0.x
