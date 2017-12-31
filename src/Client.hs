@@ -4,34 +4,26 @@
 
 module Client where
 
-import Control.Distributed.Process.ManagedProcess.Client (callTimeout, callChan, cast)
-import Control.Distributed.Process (whereisRemoteAsync, NodeId(..))
-import Control.Distributed.Process.Backend.SimpleLocalnet (initializeBackend, Backend)
-import qualified Control.Distributed.Process.Backend.SimpleLocalnet as B (Backend(..))
-import Control.Distributed.Process ( expect
-                                   , expectTimeout
+import Control.Distributed.Process.ManagedProcess.Client (callChan, cast)
+import Control.Distributed.Process ( expectTimeout
                                    , say
-                                   , send
-                                   , receiveWait
+                                   , whereisRemoteAsync
                                    , spawnLocal
-                                   , matchChan
                                    , receiveChan
                                    , nsend
-                                   , getSelfPid
+                                   , NodeId(..)
                                    , Process
                                    , ProcessId
                                    , ReceivePort
                                    , WhereIsReply(..) )
 import Control.Distributed.Process.Node ( initRemoteTable
                                         , runProcess
-                                        , newLocalNode
-                                        , LocalNode)
+                                        , newLocalNode )
 import Network.Transport.TCP (createTransport, defaultTCPParameters)
 import Network.Transport     (EndPointAddress(..))
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad (void, forever)
-import Control.Distributed.Process.Extras.Time (milliSeconds)
 import System.Environment    (getArgs)
 import qualified Data.ByteString.Char8 as BS (pack)
 import Types

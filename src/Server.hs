@@ -4,16 +4,9 @@
 
 module Server where
 
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad (void, forever)
-import Control.Monad.Fix (fix)
 import Network.Transport.TCP (createTransport, defaultTCPParameters)
 import Control.Distributed.Process.ManagedProcess ( serve
-                                                  , statelessInit
-                                                  , statelessProcess
                                                   , defaultProcess
-                                                  , handleCall_
-                                                  , handleRpcChan_
                                                   , handleRpcChan
                                                   , handleCast
                                                   , InitResult(..)
@@ -21,34 +14,21 @@ import Control.Distributed.Process.ManagedProcess ( serve
                                                   , ChannelHandler
                                                   , ActionHandler
                                                   , CastHandler
-                                                  , StatelessChannelHandler
-                                                  , StatelessHandler
-                                                  , Action
                                                   , ProcessDefinition(..) )
-import Control.Distributed.Process ( getSelfPid
-                                   , send
-                                   , say
-                                   , expect
-                                   , newChan
+import Control.Distributed.Process ( say
                                    , spawnLocal
-                                   , matchChan
-                                   , receiveWait
                                    , register
-                                   , expect
                                    , Process
                                    , ProcessId(..)
-                                   , SendPort
-                                   , ReceivePort )
-import Control.Distributed.Process.ManagedProcess.Server (replyChan, handleCall_, continue_, continue)
+                                   , SendPort )
+import Control.Distributed.Process.ManagedProcess.Server (replyChan, continue)
 import Control.Distributed.Process.Extras.Time (Delay(..))
 import Control.Distributed.Process.Node ( initRemoteTable
                                         , runProcess
-                                        , forkProcess
-                                        , newLocalNode
-                                        , LocalNode )
+                                        , newLocalNode )
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad (forM_)
+import Control.Monad (forever, forM_)
 import Types
 
 server :: IO ()
@@ -68,12 +48,6 @@ broadcastMessage :: [SendPort ChatMessage] -> ChatMessage -> Process ()
 broadcastMessage clientPorts msg = forM_ clientPorts $ flip replyChan msg
 
 -- Server Code
-messageHandler_ :: StatelessChannelHandler () ChatMessage ChatMessage
-messageHandler_ sp = statelessHandler
-  where
-    statelessHandler :: StatelessHandler () ChatMessage
-    statelessHandler msg a@() = replyChan sp msg >> continue_ a
-
 messageHandler :: CastHandler [SendPort ChatMessage] ChatMessage
 messageHandler = handler
   where
