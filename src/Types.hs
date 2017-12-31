@@ -6,8 +6,6 @@ module Types where
 import GHC.Generics
 import Data.Binary
 import Data.Typeable.Internal
-import Control.Distributed.Process (Process, ProcessId)
-
 
 data Sender = Server | Client String
   deriving (Generic, Typeable, Eq, Show)

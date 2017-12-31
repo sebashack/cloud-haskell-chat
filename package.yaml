@@ -27,6 +27,7 @@ library:
   exposed-modules:
     - Server
     - Client
+    - Logger
     - Types
   dependencies:
     - distributed-process == 0.6.6

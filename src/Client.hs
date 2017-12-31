@@ -6,11 +6,9 @@ module Client where
 
 import Control.Distributed.Process.ManagedProcess.Client (callChan, cast)
 import Control.Distributed.Process ( expectTimeout
-                                   , say
                                    , whereisRemoteAsync
                                    , spawnLocal
                                    , receiveChan
-                                   , nsend
                                    , NodeId(..)
                                    , Process
                                    , ProcessId
@@ -27,12 +25,9 @@ import Control.Monad (void, forever)
 import System.Environment    (getArgs)
 import qualified Data.ByteString.Char8 as BS (pack)
 import Types
-
+import Logger (runChatLogger, logChatMessage, logStr)
 
 -- Client code
-sendMsg :: ProcessId -> String -> Process (ReceivePort String)
-sendMsg sid msg = callChan sid msg
-
 searchChatServer :: String -> Process ProcessId
 searchChatServer serverAddr = do
   let addr = EndPointAddress (BS.pack serverAddr)
@@ -45,12 +40,6 @@ searchChatServer serverAddr = do
       Nothing  -> searchChatServer serverAddr
     Nothing -> searchChatServer serverAddr
 
-logChatMessage :: ChatMessage -> Process ()
-logChatMessage ChatMessage{..} =
-  case from of
-    Server ->  say message
-    Client sender-> say $ sender ++ ": " ++ message
-
 launchChatClient :: IO ()
 launchChatClient = do
   [serverAddr] <- getArgs
@@ -59,13 +48,14 @@ launchChatClient = do
     Left err -> putStrLn (show err)
     Right transport -> do
       node <- newLocalNode transport initRemoteTable
+      runChatLogger node
       runProcess node $ do
         serverPid <- searchChatServer "127.0.0.1:8088:0"
-        say "Joining chat server ... "
-        say "Please, provide your nickname ... "
+        logStr "Joining chat server ... "
+        logStr "Please, provide your nickname ... "
         nickName <- liftIO getLine
         rp <- callChan serverPid (JoinChatMessage nickName) :: Process (ReceivePort ChatMessage)
-        say "You have joined the chat ... "
+        logStr "You have joined the chat ... "
         void $ spawnLocal $ forever $ do
           msg <- receiveChan rp
           logChatMessage msg
