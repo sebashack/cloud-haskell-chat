@@ -30,7 +30,7 @@ import Control.Distributed.Process.Node ( initRemoteTable
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad (forever, forM_)
-import qualified Data.Map as M (insert, empty)
+import qualified Data.Map as M (insert, empty, member)
 import Types
 
 serveChatRoom :: ChatName -> IO ()
@@ -47,7 +47,8 @@ serveChatRoom name = do
     Left err -> putStrLn (show err)
 
 broadcastMessage :: ClientPortMap -> ChatMessage -> Process ()
-broadcastMessage clientPorts msg = forM_ clientPorts (\(sp, _) -> replyChan sp msg)
+broadcastMessage clientPorts msg =
+  forM_ clientPorts (\(sp, _) -> replyChan sp msg)
 
 -- Server Code
 messageHandler :: CastHandler ClientPortMap ChatMessage
@@ -62,11 +63,14 @@ joinChatHandler :: ChannelHandler ClientPortMap JoinChatMessage ChatMessage
 joinChatHandler sp = handler
   where
     handler :: ActionHandler ClientPortMap JoinChatMessage
-    handler clients JoinChatMessage{..} = do
-      clientMonitor <- monitorPort sp
-      let clients' = M.insert clientName (sp, clientMonitor) clients
-      broadcastMessage clients $ ChatMessage Server (clientName ++ " has joined the chat ...")
-      continue clients'
+    handler clients JoinChatMessage{..} =
+      if clientName `M.member` clients
+        then replyChan sp (ChatMessage Server "Nickname already in use ... ") >> continue clients
+        else do
+          clientMonitor <- monitorPort sp
+          let clients' = M.insert clientName (sp, clientMonitor) clients
+          broadcastMessage clients $ ChatMessage Server (clientName ++ " has joined the chat ...")
+          continue clients'
 
 launchChatServer :: Process ProcessId
 launchChatServer =
