@@ -51,6 +51,7 @@ launchChatClient clientAddr name = do
       runChatLogger node
       runProcess node $ do
         serverPid <- searchChatServer name "127.0.0.1:8088:0"
+        link serverPid
         logStr "Joining chat server ... "
         logStr "Please, provide your nickname ... "
         nickName <- liftIO getLine
