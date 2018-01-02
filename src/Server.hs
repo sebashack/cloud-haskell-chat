@@ -31,8 +31,8 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad (forever, forM_)
 import Types
 
-server :: IO ()
-server = do
+serveChatRoom :: ChatName -> IO ()
+serveChatRoom name = do
   mt <- createTransport "127.0.0.1" "8088" defaultTCPParameters
   case mt of
     Right transport -> do
@@ -40,7 +40,7 @@ server = do
       runProcess node $ do
         pId <- launchChatServer
         say $ "Process launched: " ++ show pId
-        register "chat-1" pId
+        register name pId
         liftIO $ forever $ threadDelay 500000
     Left err -> putStrLn (show err)
 

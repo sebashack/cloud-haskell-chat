@@ -1,6 +1,10 @@
 module Main where
 
 import Server
+import System.Environment (getArgs)
 
 main :: IO ()
-main = putStrLn "Chat server running ..." >> server
+main = do
+  [chatName] <- getArgs
+  putStrLn "Chat server running ..."
+  serveChatRoom chatName

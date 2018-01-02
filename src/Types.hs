@@ -7,11 +7,13 @@ import GHC.Generics
 import Data.Binary
 import Data.Typeable.Internal
 
+
+type ChatName = String
+
 data Sender = Server | Client String
   deriving (Generic, Typeable, Eq, Show)
 
 instance Binary Sender
-
 
 data ChatMessage = ChatMessage {
     from :: Sender

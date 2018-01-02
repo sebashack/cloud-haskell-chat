@@ -22,7 +22,7 @@ import Network.Transport     (EndPointAddress(..))
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad (void, forever)
-import System.Environment    (getArgs)
+import System.Environment (getArgs)
 import qualified Data.ByteString.Char8 as BS (pack)
 import Types
 import Logger (runChatLogger, logChatMessage, logStr)
