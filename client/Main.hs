@@ -1,7 +1,10 @@
 module Main where
 
 import Client
-import Server
+import System.Environment (getArgs)
 
 main :: IO ()
-main = launchChatClient
+main = do
+  [clientAddr, chatName] <- getArgs
+  putStrLn "Chat client running ..."
+  launchChatClient clientAddr chatName

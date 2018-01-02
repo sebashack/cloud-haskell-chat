@@ -9,6 +9,7 @@ import Control.Distributed.Process ( expectTimeout
                                    , whereisRemoteAsync
                                    , spawnLocal
                                    , receiveChan
+                                   , link
                                    , NodeId(..)
                                    , Process
                                    , ProcessId
@@ -28,29 +29,28 @@ import Types
 import Logger (runChatLogger, logChatMessage, logStr)
 
 -- Client code
-searchChatServer :: String -> Process ProcessId
-searchChatServer serverAddr = do
+searchChatServer :: ChatName -> String -> Process ProcessId
+searchChatServer name serverAddr = do
   let addr = EndPointAddress (BS.pack serverAddr)
       srvId = NodeId addr
-  whereisRemoteAsync srvId "chat-1"
+  whereisRemoteAsync srvId name
   reply <- expectTimeout 1000
   case reply of
     Just (WhereIsReply _ msid) -> case msid of
       Just sid -> return sid
-      Nothing  -> searchChatServer serverAddr
-    Nothing -> searchChatServer serverAddr
+      Nothing  -> searchChatServer name serverAddr
+    Nothing -> searchChatServer name serverAddr
 
-launchChatClient :: IO ()
-launchChatClient = do
-  [serverAddr] <- getArgs
-  mt <- createTransport serverAddr "8088" defaultTCPParameters
+launchChatClient :: Address -> ChatName -> IO ()
+launchChatClient clientAddr name = do
+  mt <- createTransport clientAddr "8088" defaultTCPParameters
   case mt of
     Left err -> putStrLn (show err)
     Right transport -> do
       node <- newLocalNode transport initRemoteTable
       runChatLogger node
       runProcess node $ do
-        serverPid <- searchChatServer "127.0.0.1:8088:0"
+        serverPid <- searchChatServer name "127.0.0.1:8088:0"
         logStr "Joining chat server ... "
         logStr "Please, provide your nickname ... "
         nickName <- liftIO getLine

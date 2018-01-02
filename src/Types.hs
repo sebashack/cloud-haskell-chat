@@ -10,6 +10,8 @@ import Data.Typeable.Internal
 
 type ChatName = String
 
+type Address = String
+
 data Sender = Server | Client String
   deriving (Generic, Typeable, Eq, Show)
 
@@ -21,7 +23,6 @@ data ChatMessage = ChatMessage {
   } deriving (Generic, Typeable, Show)
 
 instance Binary ChatMessage
-
 
 newtype JoinChatMessage = JoinChatMessage {
     clientName :: String
