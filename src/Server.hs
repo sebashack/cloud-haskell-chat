@@ -52,7 +52,7 @@ serveChatRoom name = do
 
 broadcastMessage :: ClientPortMap -> ChatMessage -> Process ()
 broadcastMessage clientPorts msg =
-  forM_ clientPorts (\(sp, _) -> replyChan sp msg)
+  forM_ clientPorts (flip replyChan msg)
 
 -- Server Code
 messageHandler :: CastHandler ClientPortMap ChatMessage
@@ -77,7 +77,7 @@ joinChatHandler sp = handler
             matchIf (\(ProcessMonitorNotification monitorRef _ _) -> monitorRef == clientMonitor)
                     (\ProcessMonitorNotification{} -> cast serverPid (DeleteClientMessage clientName))
             ]
-          let clients' = M.insert clientName (sp, clientMonitor) clients
+          let clients' = M.insert clientName sp clients
           broadcastMessage clients $ ChatMessage Server (clientName ++ " has joined the chat ...")
           continue clients'
 

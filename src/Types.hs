@@ -16,7 +16,7 @@ type Address = String
 
 type NickName = String
 
-type ClientPortMap = Map NickName (SendPort ChatMessage, MonitorRef)
+type ClientPortMap = Map NickName (SendPort ChatMessage)
 
 
 data Sender = Server | Client String
