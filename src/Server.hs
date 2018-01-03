@@ -9,6 +9,7 @@ import Control.Distributed.Process.ManagedProcess ( serve
                                                   , defaultProcess
                                                   , handleRpcChan
                                                   , handleCast
+                                                  , handleInfo
                                                   , InitResult(..)
                                                   , UnhandledMessagePolicy(..)
                                                   , ChannelHandler
@@ -19,14 +20,10 @@ import Control.Distributed.Process ( say
                                    , spawnLocal
                                    , register
                                    , monitorPort
-                                   , receiveWait
-                                   , matchIf
-                                   , getSelfPid
                                    , Process
                                    , ProcessId(..)
-                                   , ProcessMonitorNotification(..) )
+                                   , PortMonitorNotification(..) )
 import Control.Distributed.Process.ManagedProcess.Server (replyChan, continue)
-import Control.Distributed.Process.ManagedProcess.Client (cast)
 import Control.Distributed.Process.Extras.Time (Delay(..))
 import Control.Distributed.Process.Node ( initRemoteTable
                                         , runProcess
@@ -71,12 +68,7 @@ joinChatHandler sp = handler
       if clientName `M.member` clients
         then replyChan sp (ChatMessage Server "Nickname already in use ... ") >> continue clients
         else do
-          clientMonitor <- monitorPort sp
-          serverPid <- getSelfPid
-          void $ spawnLocal $ forever $ receiveWait [
-            matchIf (\(ProcessMonitorNotification monitorRef _ _) -> monitorRef == clientMonitor)
-                    (\ProcessMonitorNotification{} -> cast serverPid (DeleteClientMessage clientName))
-            ]
+          void $ monitorPort sp
           let clients' = M.insert clientName sp clients
           broadcastMessage clients $ ChatMessage Server (clientName ++ " has joined the chat ...")
           continue clients'
@@ -87,7 +79,7 @@ removeFromChatHandler = handler
     handler :: ActionHandler ClientPortMap DeleteClientMessage
     handler clients (DeleteClientMessage nickName) = do
       let clients' = M.delete nickName clients
-      broadcastMessage clients' (ChatMessage Server $ nickName ++ " has left chat ... ")
+      broadcastMessage clients' (ChatMessage Server $ nickName ++ " has left the chat ... ")
       continue clients'
 
 launchChatServer :: Process ProcessId
@@ -96,6 +88,9 @@ launchChatServer =
           apiHandlers =  [ handleRpcChan joinChatHandler
                          , handleCast messageHandler
                          , handleCast removeFromChatHandler
+                         ]
+        , infoHandlers = [ handleInfo (\clients PortMonitorNotification{} ->
+                                         say "yujuuuuu" >> continue clients)
                          ]
         , unhandledMessagePolicy = Log
         }
