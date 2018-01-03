@@ -1,5 +1,6 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE DeriveDataTypeable     #-}
+{-# LANGUAGE DeriveGeneric          #-}
+{-# LANGUAGE DuplicateRecordFields  #-}
 
 module Types where
 
@@ -31,7 +32,13 @@ data ChatMessage = ChatMessage {
 instance Binary ChatMessage
 
 newtype JoinChatMessage = JoinChatMessage {
-    clientName :: String
+    clientName :: NickName
   } deriving (Generic, Typeable, Show)
 
 instance Binary JoinChatMessage
+
+newtype DeleteClientMessage = DeleteClientMessage {
+  clientName :: NickName
+  } deriving (Generic, Typeable, Show)
+
+instance Binary DeleteClientMessage

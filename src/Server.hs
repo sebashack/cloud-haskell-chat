@@ -18,19 +18,23 @@ import Control.Distributed.Process.ManagedProcess ( serve
 import Control.Distributed.Process ( say
                                    , spawnLocal
                                    , register
+                                   , monitorPort
+                                   , receiveWait
+                                   , matchIf
+                                   , getSelfPid
                                    , Process
                                    , ProcessId(..)
-                                   , monitorPort
-                                   , SendPort )
+                                   , ProcessMonitorNotification(..) )
 import Control.Distributed.Process.ManagedProcess.Server (replyChan, continue)
+import Control.Distributed.Process.ManagedProcess.Client (cast)
 import Control.Distributed.Process.Extras.Time (Delay(..))
 import Control.Distributed.Process.Node ( initRemoteTable
                                         , runProcess
                                         , newLocalNode )
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad (forever, forM_)
-import qualified Data.Map as M (insert, empty, member)
+import Control.Monad (forever, forM_, void)
+import qualified Data.Map as M (insert, empty, member, delete)
 import Types
 
 serveChatRoom :: ChatName -> IO ()
@@ -68,16 +72,31 @@ joinChatHandler sp = handler
         then replyChan sp (ChatMessage Server "Nickname already in use ... ") >> continue clients
         else do
           clientMonitor <- monitorPort sp
+          serverPid <- getSelfPid
+          void $ spawnLocal $ forever $ receiveWait [
+            matchIf (\(ProcessMonitorNotification monitorRef _ _) -> monitorRef == clientMonitor)
+                    (\ProcessMonitorNotification{} -> cast serverPid (DeleteClientMessage clientName))
+            ]
           let clients' = M.insert clientName (sp, clientMonitor) clients
           broadcastMessage clients $ ChatMessage Server (clientName ++ " has joined the chat ...")
           continue clients'
+
+removeFromChatHandler :: CastHandler ClientPortMap DeleteClientMessage
+removeFromChatHandler = handler
+  where
+    handler :: ActionHandler ClientPortMap DeleteClientMessage
+    handler clients (DeleteClientMessage nickName) = do
+      let clients' = M.delete nickName clients
+      broadcastMessage clients' (ChatMessage Server $ nickName ++ " has left chat ... ")
+      continue clients'
 
 launchChatServer :: Process ProcessId
 launchChatServer =
   let server = defaultProcess {
           apiHandlers =  [ handleRpcChan joinChatHandler
                          , handleCast messageHandler
+                         , handleCast removeFromChatHandler
                          ]
-        , unhandledMessagePolicy = Drop
+        , unhandledMessagePolicy = Log
         }
   in spawnLocal $ serve () (const (return $ InitOk M.empty Infinity)) server
