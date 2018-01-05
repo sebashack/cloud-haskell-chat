@@ -27,7 +27,7 @@ import qualified Data.ByteString.Char8 as BS (pack)
 import Types
 import Logger (runChatLogger, logChatMessage, logStr)
 
--- Client code
+
 searchChatServer :: ChatName -> String -> Process ProcessId
 searchChatServer name serverAddr = do
   let addr = EndPointAddress (BS.pack serverAddr)

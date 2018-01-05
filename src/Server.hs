@@ -36,6 +36,7 @@ import Control.Monad (forever, forM_, void)
 import qualified Data.Map as M (insert, empty, member, delete, filter, elemAt)
 import Types
 
+
 serveChatRoom :: ChatName -> IO ()
 serveChatRoom name = do
   mt <- createTransport "127.0.0.1" "8088" defaultTCPParameters
@@ -53,7 +54,6 @@ broadcastMessage :: ClientPortMap -> ChatMessage -> Process ()
 broadcastMessage clientPorts msg =
   forM_ clientPorts (flip replyChan msg)
 
--- Server Code
 messageHandler :: CastHandler ClientPortMap ChatMessage
 messageHandler = handler
   where

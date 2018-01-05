@@ -8,7 +8,8 @@ import GHC.Generics
 import Data.Binary
 import Data.Typeable.Internal
 import Data.Map (Map)
-import Control.Distributed.Process (SendPort, MonitorRef)
+import Control.Distributed.Process (SendPort)
+
 
 type ChatName = String
 
@@ -36,9 +37,3 @@ newtype JoinChatMessage = JoinChatMessage {
   } deriving (Generic, Typeable, Show)
 
 instance Binary JoinChatMessage
-
-newtype DeleteClientMessage = DeleteClientMessage {
-  clientName :: NickName
-  } deriving (Generic, Typeable, Show)
-
-instance Binary DeleteClientMessage
