@@ -21,13 +21,11 @@ import Control.Distributed.Process ( say
                                    , register
                                    , monitorPort
                                    , sendPortId
-                                   , getSelfPid
                                    , Process
                                    , DiedReason(..)
                                    , ProcessId(..)
                                    , PortMonitorNotification(..) )
 import Control.Distributed.Process.ManagedProcess.Server (replyChan, continue)
-import Control.Distributed.Process.ManagedProcess.Client (cast)
 import Control.Distributed.Process.Extras.Time (Delay(..))
 import Control.Distributed.Process.Node ( initRemoteTable
                                         , runProcess
@@ -77,14 +75,16 @@ joinChatHandler sp = handler
           broadcastMessage clients $ ChatMessage Server (clientName ++ " has joined the chat ...")
           continue clients'
 
-removeFromChatHandler :: CastHandler ClientPortMap DeleteClientMessage
-removeFromChatHandler = handler
-  where
-    handler :: ActionHandler ClientPortMap DeleteClientMessage
-    handler clients (DeleteClientMessage nickName) = do
-      let clients' = M.delete nickName clients
-      broadcastMessage clients' (ChatMessage Server $ nickName ++ " has left the chat ... ")
+disconnectHandler :: ActionHandler ClientPortMap PortMonitorNotification
+disconnectHandler clients (PortMonitorNotification _ spId reason) = do
+  let search = M.filter (\v -> sendPortId v == spId) clients
+  case (null search, reason) of
+    (False, DiedDisconnect)-> do
+      let (clientName, _) = M.elemAt 0 search
+          clients' = M.delete clientName clients
+      broadcastMessage clients' (ChatMessage Server $ clientName ++ " has left the chat ... ")
       continue clients'
+    _ -> continue clients
 
 launchChatServer :: Process ProcessId
 launchChatServer =
@@ -92,19 +92,7 @@ launchChatServer =
           apiHandlers =  [ handleRpcChan joinChatHandler
                          , handleCast messageHandler
                          ]
-        , infoHandlers = [ handleInfo (\clients (PortMonitorNotification _ spId reason) -> do
-                                          let search = M.filter (\v -> sendPortId v == spId) clients
-                                          say $ show reason
-                                          case (null search, reason) of
-                                            (False, DiedDisconnect)-> do
-                                              let (clientName, _) = M.elemAt 0 search
-                                              let clients' = M.delete clientName clients
-                                              broadcastMessage clients' (ChatMessage Server $ clientName ++ " has left the chat ... ")
-                                              say $ show clients'
-                                              continue clients'
-                                            _ -> continue clients
-                                          continue clients )
-                         ]
+        , infoHandlers = [ handleInfo disconnectHandler ]
         , unhandledMessagePolicy = Log
         }
   in spawnLocal $ serve () (const (return $ InitOk M.empty Infinity)) server
