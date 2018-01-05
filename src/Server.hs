@@ -20,10 +20,14 @@ import Control.Distributed.Process ( say
                                    , spawnLocal
                                    , register
                                    , monitorPort
+                                   , sendPortId
+                                   , getSelfPid
                                    , Process
+                                   , DiedReason(..)
                                    , ProcessId(..)
                                    , PortMonitorNotification(..) )
 import Control.Distributed.Process.ManagedProcess.Server (replyChan, continue)
+import Control.Distributed.Process.ManagedProcess.Client (cast)
 import Control.Distributed.Process.Extras.Time (Delay(..))
 import Control.Distributed.Process.Node ( initRemoteTable
                                         , runProcess
@@ -31,7 +35,7 @@ import Control.Distributed.Process.Node ( initRemoteTable
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad (forever, forM_, void)
-import qualified Data.Map as M (insert, empty, member, delete)
+import qualified Data.Map as M (insert, empty, member, delete, filter, elemAt)
 import Types
 
 serveChatRoom :: ChatName -> IO ()
@@ -87,10 +91,19 @@ launchChatServer =
   let server = defaultProcess {
           apiHandlers =  [ handleRpcChan joinChatHandler
                          , handleCast messageHandler
-                         , handleCast removeFromChatHandler
                          ]
-        , infoHandlers = [ handleInfo (\clients PortMonitorNotification{} ->
-                                         say "yujuuuuu" >> continue clients)
+        , infoHandlers = [ handleInfo (\clients (PortMonitorNotification _ spId reason) -> do
+                                          let search = M.filter (\v -> sendPortId v == spId) clients
+                                          say $ show reason
+                                          case (null search, reason) of
+                                            (False, DiedDisconnect)-> do
+                                              let (clientName, _) = M.elemAt 0 search
+                                              let clients' = M.delete clientName clients
+                                              broadcastMessage clients' (ChatMessage Server $ clientName ++ " has left the chat ... ")
+                                              say $ show clients'
+                                              continue clients'
+                                            _ -> continue clients
+                                          continue clients )
                          ]
         , unhandledMessagePolicy = Log
         }
