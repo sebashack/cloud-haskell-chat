@@ -8,7 +8,6 @@ import Control.Distributed.Process ( receiveWait
                                    , nsend
                                    , Process )
 import Control.Monad.IO.Class (liftIO)
-import System.IO (hPutStrLn, stdout)
 import Control.Distributed.Process.Node (runProcess, forkProcess, LocalNode)
 import Types
 
@@ -21,12 +20,10 @@ chatMessageToStr ChatMessage{..} =
 chatLogger :: Process ()
 chatLogger = receiveWait
   [ match $ \chatMessage -> do
-      liftIO . hPutStrLn stdout $ chatMessageToStr chatMessage
+      liftIO . putStrLn $ chatMessageToStr chatMessage
       chatLogger
   , match $ \str -> do
-      let output :: String
-          output = str
-      liftIO . hPutStrLn stdout $ output
+      liftIO . putStrLn $ str
       chatLogger
   ]
 
