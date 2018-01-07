@@ -24,6 +24,7 @@ main = do
     Options _ _ Nothing -> putStrLn "Please, provide the server's chat-room NAME ... "
     Options (Just host) (Just prt) (Just name) -> serveChatRoom host prt name
 
+
 -- | Info that command line option parser needs to work.
 
 parserInfo :: ParserInfo Options
@@ -38,21 +39,21 @@ parserInfo = info (helper <*> optionParser)
 optionParser :: Parser Options
 optionParser = Options
   <$> option (Just <$> str)
-  ( long     "server-host"   <>
-    metavar  "HOST"          <>
-    value    Nothing         <>
+  ( long     "host"   <>
+    metavar  "HOST"   <>
+    value    Nothing  <>
     help
     "The chat server's host." )
   <*> option (str >>= parsePort)
-  ( long     "server port"   <>
-    metavar  "PORT"          <>
-    value    Nothing         <>
+  ( long     "port"   <>
+    metavar  "PORT"   <>
+    value    Nothing  <>
     help
     "The chat server's port." )
    <*> option (Just <$> str)
-  ( long     "chat-room name"  <>
-    metavar  "CHATNAME"        <>
-    value    Nothing           <>
+  ( long     "room"      <>
+    metavar  "ROOMNAME"  <>
+    value    Nothing     <>
     help
     "The name for this chat-room." )
   where

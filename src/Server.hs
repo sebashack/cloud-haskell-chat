@@ -16,8 +16,7 @@ import Control.Distributed.Process.ManagedProcess ( serve
                                                   , ActionHandler
                                                   , CastHandler
                                                   , ProcessDefinition(..) )
-import Control.Distributed.Process ( say
-                                   , spawnLocal
+import Control.Distributed.Process ( spawnLocal
                                    , register
                                    , monitorPort
                                    , sendPortId
