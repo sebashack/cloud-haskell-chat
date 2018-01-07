@@ -75,7 +75,9 @@ joinChatHandler sp = handler
         else do
           void $ monitorPort sp
           let clients' = M.insert clientName sp clients
-          broadcastMessage clients $ ChatMessage Server (clientName ++ " has joined the chat ...")
+              msg = clientName ++ " has joined the chat ..."
+          logStr msg
+          broadcastMessage clients $ ChatMessage Server msg
           continue clients'
 
 disconnectHandler :: ActionHandler ClientPortMap PortMonitorNotification
