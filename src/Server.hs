@@ -21,9 +21,11 @@ import Control.Distributed.Process ( say
                                    , register
                                    , monitorPort
                                    , sendPortId
+                                   , processNodeId
                                    , Process
                                    , DiedReason(..)
                                    , ProcessId(..)
+                                   , NodeId(..)
                                    , PortMonitorNotification(..) )
 import Control.Distributed.Process.ManagedProcess.Server (replyChan, continue)
 import Control.Distributed.Process.Extras.Time (Delay(..))
@@ -33,19 +35,20 @@ import Control.Distributed.Process.Node ( initRemoteTable
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad (forever, forM_, void)
+import Logger (runChatLogger, logStr)
 import qualified Data.Map as M (insert, empty, member, delete, filter, elemAt)
 import Types
 
-
-serveChatRoom :: ChatName -> IO ()
-serveChatRoom name = do
-  mt <- createTransport "127.0.0.1" "8088" defaultTCPParameters
+serveChatRoom :: Host -> Int -> ChatName -> IO ()
+serveChatRoom host port name = do
+  mt <- createTransport host (show port) defaultTCPParameters
   case mt of
     Right transport -> do
       node <- newLocalNode transport initRemoteTable
+      runChatLogger node
       runProcess node $ do
         pId <- launchChatServer
-        say $ "Process launched: " ++ show pId
+        logStr $ "Server launched at: " ++ show (nodeAddress . processNodeId $ pId)
         register name pId
         liftIO $ forever $ threadDelay 500000
     Left err -> putStrLn (show err)

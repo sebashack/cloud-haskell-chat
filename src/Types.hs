@@ -13,12 +13,13 @@ import Control.Distributed.Process (SendPort)
 
 type ChatName = String
 
-type Address = String
-
 type NickName = String
 
-type ClientPortMap = Map NickName (SendPort ChatMessage)
+type Host = String
 
+type ServerAddress = String
+
+type ClientPortMap = Map NickName (SendPort ChatMessage)
 
 data Sender = Server | Client String
   deriving (Generic, Typeable, Eq, Show)

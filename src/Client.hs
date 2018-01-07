@@ -28,7 +28,7 @@ import Types
 import Logger (runChatLogger, logChatMessage, logStr)
 
 
-searchChatServer :: ChatName -> String -> Process ProcessId
+searchChatServer :: ChatName -> ServerAddress -> Process ProcessId
 searchChatServer name serverAddr = do
   let addr = EndPointAddress (BS.pack serverAddr)
       srvId = NodeId addr
@@ -40,16 +40,16 @@ searchChatServer name serverAddr = do
       Nothing  -> searchChatServer name serverAddr
     Nothing -> searchChatServer name serverAddr
 
-launchChatClient :: Address -> ChatName -> IO ()
-launchChatClient clientAddr name = do
-  mt <- createTransport clientAddr "8088" defaultTCPParameters
+launchChatClient :: ServerAddress -> Host -> Int -> ChatName -> IO ()
+launchChatClient serverAddr clientHost port name  = do
+  mt <- createTransport clientHost (show port) defaultTCPParameters
   case mt of
     Left err -> putStrLn (show err)
     Right transport -> do
       node <- newLocalNode transport initRemoteTable
       runChatLogger node
       runProcess node $ do
-        serverPid <- searchChatServer name "127.0.0.1:8088:0"
+        serverPid <- searchChatServer name serverAddr
         link serverPid
         logStr "Joining chat server ... "
         logStr "Please, provide your nickname ... "
@@ -63,5 +63,3 @@ launchChatClient clientAddr name = do
           chatInput <- liftIO getLine
           cast serverPid (ChatMessage (Client nickName) chatInput)
           liftIO $ threadDelay 500000
-
--- 127.0.0.x

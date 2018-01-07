@@ -5,6 +5,6 @@ import System.Environment (getArgs)
 
 main :: IO ()
 main = do
-  [chatName] <- getArgs
+  [serverAddr, port, chatName] <- getArgs
   putStrLn "Chat server running ..."
-  serveChatRoom chatName
+  serveChatRoom serverAddr (read port) chatName
